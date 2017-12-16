@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html>
+ <head>
+ <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/0.4.8/p5.min.js"></script>
+ <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/0.4.8/addons/p5.dom.js"></script>
+ <script type="text/javascript" src="./Tone.js"></script>
+
+<script type="text/javascript">
+
+
+var img;
+
+var text;     // variable for the text div you'll create
+ var socket = new WebSocket("ws://localhost:8081");
+var a;
+
+var bugs = []; // array of Jitter objects
+
+
+var synth = new Tone.Synth().toMaster();
+
+var x=0;
+
+/*var synth = new Tone.Synth({
+	"oscillator" : {
+		"type" : "pwm",
+		"modulationFrequency" : 0.2
+	},
+	"envelope" : {
+		"attack" : 0.02,
+		"decay" : 0.3,
+		"sustain" : 0.1,
+		"release" : 0.9,
+	}
+}).toMaster();
+
+ */
+
+var polySynth = new Tone.PolySynth(4, Tone.Synth).toMaster();
+
+
+ 
+
+
+function setup() {
+createCanvas(1500, 800);
+
+background(50, 89, 100);
+ // Create objects
+  for (var i=0; i<50; i++) {
+    bugs.push(new Jitter());
+  }
+    // The socket connection needs two event listeners:
+    socket.onopen = openSocket;
+    socket.onmessage = showData;
+
+//img = loadImage("https://images-na.ssl-images-amazon.com/images/I/51mEs5FrAWL._SL500_AC_SS350_.jpg");  // Load the image
+
+//image(img, 100, 100);
+
+}
+
+function openSocket() {
+    
+    //socket.send("Hello server");
+  }
+ 
+function draw() {
+
+}
+
+function showData(result) {
+
+//background(0);
+
+
+//if (a<500) {background(50, 89, 100);}
+background(50, 89, 100);
+fill(255);
+
+a=int(result.data.slice(1,result.data.length-3));
+
+var SERIESRESISTOR = 10000;
+var THERMISTORNOMINAL = 10000;
+var TEMPERATURENOMINAL = 25;
+var BCOEFFICIENT = 3950;
+
+var average = a;
+average = 1023 / average - 1;
+average = SERIESRESISTOR / average;
+
+var steinhart;
+steinhart = average / THERMISTORNOMINAL;     // (R/Ro)
+steinhart = Math.log(steinhart);                  // ln(R/Ro)
+steinhart /= BCOEFFICIENT;                   // 1/B * ln(R/Ro)
+steinhart += 1.0 / (TEMPERATURENOMINAL + 273.15); // + (1/To)
+steinhart = 1.0 / steinhart;                 // Invert
+steinhart -= 273.15;                         // convert to C
+
+
+b=(1023-a)*1.5;
+
+synth.triggerAttackRelease(b, "16n");
+
+
+noStroke();
+fill(255,0,0);
+//ellipse(x,height/2, a/20, a/20);
+ellipse(x,height-height*(b/1024),50, 50);
+
+fill(255);
+textSize(50);
+text(steinhart.toFixed(2)+ " C",x-60,height-height*(b/1024)-50);
+
+x=x+10;
+if (x>width) {x=0;}
+
+
+fill(100,255,0);
+
+
+  for (var i=0; i<bugs.length; i++) {
+    bugs[i].move(b/200);
+    bugs[i].display();
+  }
+
+/*
+fill(255);
+textSize(50);
+text(steinhart.toFixed(2)+ " C",width/2,height/2);
+*/
+
+//ellipse(200,400-(a/1024)*400, 10, 10);
+
+
+//synth.triggerAttackRelease(a+100, "16n");
+
+ 
+//polySynth.triggerAttackRelease(["C4", "E4", "G4", "B4"], "16n");
+//polySynth.triggerAttackRelease([a, a+100, "G4", "B4"], "16n");
+
+
+
+  }
+
+ 
+// Jitter class
+function Jitter() {
+  this.x = random(width);
+  this.y = random(height);
+  this.diameter = random(10, 30);
+  //this.speed = 1;
+
+  this.move = function(speed) {
+/*
+    this.x += random(-this.speed, this.speed);
+    this.y += random(-this.speed, this.speed);
+*/
+this.x += random(-speed, speed);
+    this.y += random(-speed, speed);
+  };
+
+  this.display = function() {
+    ellipse(this.x, this.y, this.diameter, this.diameter);
+
+  };
+}
+
+
+
+ </script>
+ 
+ <meta charset="utf-8">
+ <title></title>
+ </head>
+ <body>
+ 
+ </body>
+</html>

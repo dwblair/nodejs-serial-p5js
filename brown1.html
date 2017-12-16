@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html>
+ <head>
+ <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/0.4.8/p5.min.js"></script>
+ <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/0.4.8/addons/p5.dom.js"></script>
+ <script type="text/javascript" src="./Tone.js"></script>
+
+<script type="text/javascript">
+
+var steinhart=20;
+
+var num = 2000;
+var range = 6;
+
+var ax = [];
+var ay = [];
+
+var img;
+
+var text;     // variable for the text div you'll create
+ var socket = new WebSocket("ws://localhost:8081");
+var a;
+
+var bugs = []; // array of Jitter objects
+
+
+var synth = new Tone.Synth().toMaster();
+
+var x=0;
+
+/*var synth = new Tone.Synth({
+	"oscillator" : {
+		"type" : "pwm",
+		"modulationFrequency" : 0.2
+	},
+	"envelope" : {
+		"attack" : 0.02,
+		"decay" : 0.3,
+		"sustain" : 0.1,
+		"release" : 0.9,
+	}
+}).toMaster();
+
+ */
+
+var polySynth = new Tone.PolySynth(4, Tone.Synth).toMaster();
+
+
+function setup() {
+
+createCanvas(1500, 800);
+  for ( var i = 0; i < num; i++ ) {
+    ax[i] = width / 2;
+    ay[i] = height / 2;
+  }
+  frameRate(30);
+
+    // The socket connection needs two event listeners:
+    socket.onopen = openSocket;
+    socket.onmessage = showData;
+
+}
+
+function openSocket() {
+    
+    //socket.send("Hello server");
+  }
+ 
+function draw() {
+
+}
+
+function showData(result) {
+
+
+a=int(result.data.slice(1,result.data.length-3));
+
+getTemp();
+
+range=(steinhart/20)*width/150;
+
+background(51);
+
+
+
+  // Shift all elements 1 place to the left
+  for ( var i = 1; i < num; i++ ) {
+    ax[i - 1] = ax[i];
+    ay[i - 1] = ay[i];
+  }
+
+  // Put a new value at the end of the array
+  ax[num - 1] += random(-range, range);
+  ay[num - 1] += random(-range, range);
+
+  // Constrain all points to the screen
+  ax[num - 1] = constrain(ax[num - 1], 0, width);
+  ay[num - 1] = constrain(ay[num - 1], 0, height);
+
+  // Draw a line connecting the points
+  for ( var j = 1; j < num; j++ ) {
+    var val = j / num * 204.0 + 51;
+    stroke(val,0,0);
+    line(ax[j - 1], ay[j - 1], ax[j], ay[j]);
+  }
+
+getTemp();
+
+stroke(255);
+fill(255);
+textSize(50);
+//text("a= " + a,50,50);
+//text("range = " + range.toFixed(2),50,100);
+text("temp = " + steinhart.toFixed(2)+" C",50,50);
+text("step_size = " + range.toFixed(2),50,100);
+}
+
+function getTemp() {
+
+var SERIESRESISTOR = 10000;
+var THERMISTORNOMINAL = 10000;
+var TEMPERATURENOMINAL = 25;
+var BCOEFFICIENT = 3950;
+
+var average = a;
+average = 1023 / average - 1;
+average = SERIESRESISTOR / average;
+
+steinhart = average / THERMISTORNOMINAL;     // (R/Ro)
+steinhart = Math.log(steinhart);                  // ln(R/Ro)
+steinhart /= BCOEFFICIENT;                   // 1/B * ln(R/Ro)
+steinhart += 1.0 / (TEMPERATURENOMINAL + 273.15); // + (1/To)
+steinhart = 1.0 / steinhart;                 // Invert
+steinhart -= 273.15;                         // convert to C
+
+}
+
+
+ </script>
+ 
+ <meta charset="utf-8">
+ <title></title>
+ </head>
+ <body>
+ 
+ </body>
+</html>
